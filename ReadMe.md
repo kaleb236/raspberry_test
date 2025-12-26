@@ -21,3 +21,6 @@ install matplotlib:
 ```bash
 pip3 install matplotlib
 ```
+```bash
+pip install audioop-lts
+```

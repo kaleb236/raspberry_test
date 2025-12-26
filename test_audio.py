@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load your audio file (MP3, WAV, etc.)
-audio_path = "/home/ovali/audio_proccessing/mic_recording_boosted.wav"
+audio_path = "mic_recording_boosted.wav"
 audio = AudioSegment.from_file(audio_path)
 
 # Convert to mono to keep things simple
