@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Roboclaw Joystick</title>
+<style>
+body { font-family: Arial; text-align: center; }
+#joystick {
+    width: 200px; height: 200px;
+    background: #ddd; border-radius: 50%;
+    margin: 20px auto; position: relative;
+    touch-action: none;
+}
+#stick {
+    width: 50px; height: 50px;
+    background: red; border-radius: 50%;
+    position: absolute; left: 75px; top: 75px;
+    touch-action: none;
+}
+label, input, button { font-size: 1em; margin: 5px; }
+</style>
+</head>
+<body>
+
+<h2>Roboclaw Differential Drive</h2>
+
+<div id="joystick">
+    <div id="stick"></div>
+</div>
+
+<label for="speed">Max Speed:</label>
+<input type="number" id="speed" value="50000">
+<button id="setSpeed">Change Speed</button>
+
+<script>
+const PI = Math.PI;
+
+// Replace with your Pi's IP if needed
+const ws = new WebSocket("ws://localhost:8765");
+
+ws.onopen = () => console.log("WebSocket connected");
+ws.onerror = (err) => console.error("WebSocket error", err);
+
+const joystick = document.getElementById("joystick");
+const stick = document.getElementById("stick");
+
+let dragging = false;
+let rect = joystick.getBoundingClientRect();
+
+function sendJoystick(left, right) {
+    if(ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({left:left, right:right}));
+        console.log("Sent:", left, right);
+    }
+}
+
+// -----------------------
+// Joystick events
+// -----------------------
+function startDrag(e) {
+    e.preventDefault();
+    dragging = true;
+}
+function stopDrag(e) {
+    dragging = false;
+    stick.style.left = "75px";
+    stick.style.top = "75px";
+    sendJoystick(0,0);
+}
+function moveStick(e) {
+    if (!dragging) return;
+    let clientX = e.clientX || e.touches[0].clientX;
+    let clientY = e.clientY || e.touches[0].clientY;
+
+    let x = clientX - rect.left - 25;
+    let y = clientY - rect.top - 25;
+
+    // Clamp stick inside joystick
+    x = Math.max(Math.min(x, 150), 0);
+    y = Math.max(Math.min(y, 150), 0);
+
+    stick.style.left = x + "px";
+    stick.style.top = y + "px";
+
+    // Differential drive mapping
+    let left = -(y - 75) + (x - 75);
+    let right = -(y - 75) - (x - 75);
+
+    left = Math.max(Math.min(left,127),-127);
+    right = Math.max(Math.min(right,127),-127);
+
+    sendJoystick(left, right);
+}
+
+// Events
+stick.addEventListener("mousedown", startDrag);
+stick.addEventListener("touchstart", startDrag);
+
+document.addEventListener("mouseup", stopDrag);
+document.addEventListener("touchend", stopDrag);
+
+document.addEventListener("mousemove", moveStick);
+document.addEventListener("touchmove", moveStick);
+
+// -----------------------
+// Speed control
+// -----------------------
+document.getElementById("setSpeed").addEventListener("click", () => {
+    const speed = parseInt(document.getElementById("speed").value);
+    if(ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({speed:speed}));
+        console.log("Speed changed to:", speed);
+    }
+});
+
+// Update rect on resize
+window.addEventListener("resize", () => {
+    rect = joystick.getBoundingClientRect();
+});
+</script>
+
+</body>
+</html>
