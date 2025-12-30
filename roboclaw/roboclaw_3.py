@@ -90,6 +90,8 @@ class Roboclaw:
 		RESTOREDEFAULTS = 80
 		GETTEMP = 82
 		GETTEMP2 = 83
+		AUTOTUNEM1VEL = 84
+		AUTOTUNEM2VEL = 85
 		GETERROR = 90
 		GETENCODERMODE = 91
 		SETM1ENCODERMODE = 92
@@ -1079,4 +1081,10 @@ class Roboclaw:
 		except:
 			return 0
 		return 1
+	
+	def AutoTuneM1Velocity(self,address,amplitude,hysteresis):
+		return self._write44(address,self.Cmd.AUTOTUNEM1VEL,amplitude,hysteresis)
+	
+	def AutoTuneM2Velocity(self,address,amplitude,hysteresis):
+		return self._write44(address,self.Cmd.AUTOTUNEM2VEL,amplitude,hysteresis)
 

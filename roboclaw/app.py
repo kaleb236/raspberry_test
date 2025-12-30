@@ -16,20 +16,23 @@ rc = Roboclaw("/dev/ttyACM0", 115200)
 rc.Open()
 address = 0x80
 
+rc.SpeedM1M2(address, 0, 0)
+rc.ResetEncoders(address)
+
 CPR = 2048
 
 max_speed = 50000  # default max speed
 
 def set_motors(x, z):
     print("sending motor, x:", x, " z:", z)
-    rpm_l, rpm_r = speed_to_rpm(x, z, 0.033, 0.16)
+    rpm_l, rpm_r = speed_to_rpm(x * -1, z, 0.0553, 0.169)
 
     left_tick = int(rpm_l * CPR / 60)
     right_tick = int(rpm_r * CPR / 60)
 
     print(f"Left ticks: {left_tick}, Right ticks: {right_tick}")
-
-    rc.SpeedM1M2(address, left_tick, right_tick)
+    #rc.SpeedM2(address, left_tick)
+    rc.SpeedM1M2(address, left_tick, right_tick * -1)
 
 
 def speed_to_rpm(v, omega, r, L):
