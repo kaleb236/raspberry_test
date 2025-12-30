@@ -1,27 +1,53 @@
-# Raspberry Pi + MG90S Servo PWM Control Python Code
-#
-#
 import RPi.GPIO as GPIO
 import time
 
-# setup the GPIO pin for the servo
+# Ayarlar
 servo_pin = 13
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(servo_pin,GPIO.OUT)
+GPIO.setup(servo_pin, GPIO.OUT)
 
-# setup PWM process
-pwm = GPIO.PWM(servo_pin,50) # 50 Hz (20 ms PWM period)
+pwm = GPIO.PWM(servo_pin, 50) 
+pwm.start(7)
 
-pwm.start(7) # start PWM by rotating to 90 degrees
+# Mevcut konumu takip etmek için bir değişken
+current_dc = 7.0
 
-for ii in range(0,3):
-    pwm.ChangeDutyCycle(2.0) # rotate to 0 degrees
-    time.sleep(0.5)
-    pwm.ChangeDutyCycle(12.0) # rotate to 180 degrees
-    time.sleep(0.5)
-    pwm.ChangeDutyCycle(7.0) # rotate to 90 degrees
-    time.sleep(0.5)
+def yavas_hareket(hedef_dc, hiz=0.05):
+    """
+    hedef_dc: Gitmek istediğiniz DutyCycle değeri
+    hiz: Her adım arasındaki bekleme süresi (küçüldükçe hızlanır)
+    """
+    global current_dc
+    
+    # Hedefe doğru küçük adımlarla ilerle (0.1 birimlik adımlar)
+    adim = 0.1 if hedef_dc > current_dc else -0.1
+    
+    while abs(current_dc - hedef_dc) > 0.05:
+        current_dc += adim
+        pwm.ChangeDutyCycle(current_dc)
+        time.sleep(hiz) # Bu süre ne kadar büyükse servo o kadar yavaş döner
+    
+    # Tam hedef noktasına sabitle
+    pwm.ChangeDutyCycle(hedef_dc)
+    current_dc = hedef_dc
 
-pwm.ChangeDutyCycle(0) # this prevents jitter
-pwm.stop() # stops the pwm on 13
-GPIO.cleanup() # good practice when finished using a pin
+try:
+    for ii in range(0, 3):
+        print("0 dereceye gidiyor (Yavaş)...")
+        yavas_hareket(2.0, 0.01) # 0.02 saniye bekleme ile
+        time.sleep(0.5)
+        
+        print("180 dereceye gidiyor (Daha Yavaş)...")
+        yavas_hareket(12.0, 0.01) # 0.05 saniye bekleme ile daha da yavaş
+        time.sleep(0.5)
+        
+        print("90 dereceye gidiyor...")
+        yavas_hareket(7.0, 0.01)
+        time.sleep(0.5)
+
+except KeyboardInterrupt:
+    pass
+
+pwm.ChangeDutyCycle(0)
+pwm.stop()
+GPIO.cleanup()
