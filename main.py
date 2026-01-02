@@ -1,9 +1,12 @@
 import websockets
+import os
 import asyncio
+import subprocess
 import math
 import json
 from roboclaw.roboclaw_3 import Roboclaw
 from sensors import battery, mesafe, led_test
+from audio_test import record_audio
 
 class SystemController:
     def __init__(self):
@@ -46,6 +49,14 @@ class SystemController:
         #rc.SpeedM2(address, left_tick)
         self.rc.SpeedM1M2(address, left_tick, right_tick * -1)
     
+    def __play_sound(self, path):
+        print("Playing sound:", path)
+        subprocess.Popen(
+            ["ffplay", "-nodisp", "-autoexit", path],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    
     async def sender(self, websocket):
         while True:
             bus_voltage = self.batter.getBusVoltage_V() if self.battery else 0
@@ -56,8 +67,12 @@ class SystemController:
             if(p > 100):p = 100
             if(p < 0):p = 0
 
-            with mesafe.SMBus(mesafe.I2C_BUS) as bus:
-                mesafe_distance = mesafe.read_distance_mm(bus)
+            try:
+                with mesafe.SMBus(mesafe.I2C_BUS) as bus:
+                    mesafe_distance = mesafe.read_distance_mm(bus)
+            except Exception as e:
+                print("Mesafe sensor read error:", e)
+                mesafe_distance = 0
             data = {
                 "bus_voltage": bus_voltage,
                 "shunt_voltage": shunt_voltage,
@@ -80,6 +95,13 @@ class SystemController:
                     self.__set_motors(data["data"]["linear_x"], data["data"]["angular_z"])
                 elif command_type == "led":
                     self.led_controller.set_color(data["data"]["r"], data["data"]["g"], data["data"]["b"])
+                elif command_type == "mic":
+                    record_audio.start_recording()
+                elif command_type == "speaker":
+                    if os.path.exists("mic_recording_boosted.wav"):
+                        self.__play_sound("mic_recording_boosted.wav")
+                    else:
+                        await websocket.send(json.dumps({"error": "Audio file not found"}))
 
         except websockets.exceptions.ConnectionClosed:
             print("Client disconnected")
