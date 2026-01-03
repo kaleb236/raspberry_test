@@ -11,16 +11,5 @@ source env/bin/activate
 ```
 install pyaudio:
 ```bash
-pip3 install pyaudio
-```
-install numpy:
-```bash
-pip3 install numpy
-```
-install matplotlib:
-```bash
-pip3 install matplotlib
-```
-```bash
-pip install audioop-lts
+pip3 install -r requirements
 ```
